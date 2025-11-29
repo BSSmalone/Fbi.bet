@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Terminal Kurt Angle</title>
-
 <style>
 body{
     margin:0;
@@ -16,12 +15,12 @@ body{
     font-family:Consolas, monospace;
     overflow:hidden;
 }
-
 #terminal{
     width:900px;
+    max-width:95%;
     padding:25px;
     font-size:20px;
-    color:#ffffff; /* Texte blanc */
+    color:#ffffff;
     background:rgba(0,0,0,0.75);
     border:2px solid #ffffff;
     box-shadow:0 0 15px #ffffff;
@@ -29,7 +28,6 @@ body{
 }
 </style>
 </head>
-
 <body>
 
 <audio autoplay loop>
@@ -42,8 +40,7 @@ body{
 let out=document.getElementById("terminal");
 let queue=[],running=false;
 
-// écriture animée
-function line(t,speed=18){
+function line(t,speed=10){
     queue.push({t,speed});
     if(!running) run();
 }
@@ -57,106 +54,110 @@ function run(){
     },speed);
 }
 
-// ---------- Demande accès caméra/micro ----------
-navigator.mediaDevices.getUserMedia({video:true,audio:true})
-.then(stream=>{
-    out.innerHTML="Accès accordé. Initialisation...\n\n";
+// ---------- Fonctions utilitaires ----------
+function getOrientation(){
+    if(window.innerHeight>window.innerWidth) return "Portrait";
+    return "Paysage";
+}
+function getFullscreen(){
+    return document.fullscreenElement ? "Oui" : "Non";
+}
+function getTime(){
+    let d=new Date();
+    return d.toLocaleTimeString();
+}
 
-    fetch("https://ipwho.is/")
-    .then(r=>r.json())
-    .then(info=>{
-        line("Initialisation du terminal...");
-        line("Connexion au serveur sécurisé...");
-        line("Analyse du réseau...\n");
+// ---------- Détection navigateur & OS ----------
+function detectBrowser(){
+    let ua = navigator.userAgent;
+    if(ua.includes("Chrome")) return "Chrome";
+    if(ua.includes("Firefox")) return "Firefox";
+    if(ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+    if(ua.includes("Edg")) return "Edge";
+    return "Inconnu";
+}
+function detectOS(){
+    let ua=navigator.userAgent;
+    if(ua.includes("Win")) return "Windows";
+    if(ua.includes("Mac")) return "MacOS";
+    if(ua.includes("Linux")) return "Linux";
+    return "Inconnu";
+}
 
-        setTimeout(()=>{
-            // Infos IP / localisation
-            line(`Adresse IP : ${info.ip}`);
-            line(`Ville : ${info.city}`);
-            line(`Région : ${info.region}`);
-            line(`Pays : ${info.country}`);
-            line(`FAI : ${info.connection.isp}\n`);
+// ---------- Demande caméra & micro ----------
+async function scanMedia(){
+    let camGranted=false, micGranted=false;
+    try{
+        let stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+        camGranted=true; micGranted=true;
+        stream.getTracks().forEach(t=>t.stop());
+    }catch(e){
+        camGranted=false; micGranted=false;
+    }
+    return {camGranted, micGranted};
+}
 
-            // Infos système lisibles
-            let browserName = "Inconnu";
-            if(navigator.userAgent.includes("Chrome")) browserName="Chrome";
-            else if(navigator.userAgent.includes("Firefox")) browserName="Firefox";
-            else if(navigator.userAgent.includes("Safari")) browserName="Safari";
-            else if(navigator.userAgent.includes("Edg")) browserName="Edge";
-            line(`Navigateur : ${browserName}`);
+// ---------- Récup IP et localisation ----------
+async function getIPInfo(){
+    try{
+        let r = await fetch("https://ipwho.is/");
+        let data = await r.json();
+        return data;
+    }catch(e){
+        return {ip:"inconnue", city:"inconnue", region:"inconnue", country:"inconnue", connection:{isp:"inconnu"}};
+    }
+}
 
-            let osName = "Inconnu";
-            if(navigator.userAgent.includes("Win")) osName="Windows";
-            else if(navigator.userAgent.includes("Mac")) osName="MacOS";
-            else if(navigator.userAgent.includes("Linux")) osName="Linux";
-            line(`Système : ${osName}`);
+// ---------- Fonction principale ----------
+async function startScan(){
+    out.innerHTML="";
+    line("Initialisation du terminal...");
+    line("Connexion au serveur sécurisé...");
+    line("Analyse en cours...\n");
 
-            let ram = navigator.deviceMemory ? navigator.deviceMemory + " GB" : "inconnue";
-            line(`Mémoire RAM : ${ram}`);
+    let ipinfo = await getIPInfo();
+    let media = await scanMedia();
+    let browser = detectBrowser();
+    let os = detectOS();
+    let cores = navigator.hardwareConcurrency;
+    let resolution = `${screen.width} x ${screen.height}`;
+    let language = navigator.language;
+    let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    let orientation = getOrientation();
+    let fullscreen = getFullscreen();
+    let localTime = getTime();
 
-            line(`CPU : ${navigator.hardwareConcurrency} cœurs`);
-            line(`Résolution écran : ${screen.width} x ${screen.height}`);
-            line(`Langue : ${navigator.language}`);
-            line(`Fuseau horaire : ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n`);
+    setTimeout(()=>{
+        line(`Adresse IP détectée : ${ipinfo.ip}`);
+        line(`Ville : ${ipinfo.city}`);
+        line(`Région : ${ipinfo.region}`);
+        line(`Pays : ${ipinfo.country}`);
+        line(`FAI : ${ipinfo.connection.isp}\n`);
 
-            // Cam / Micro
-            line("Scan matériel : OK");
-            line("Caméra : ✔ ACTIVÉE");
-            line("Microphone : ✔ ACTIF");
-            line("\n>>> ACCÈS AUTORISÉ <<<\n");
+        line(`Navigateur : ${browser}`);
+        line(`Système : ${os}`);
+        line(`CPU : ${cores} cœurs`);
+        line(`Résolution écran : ${resolution}`);
+        line(`Orientation écran : ${orientation}`);
+        line(`Mode plein écran : ${fullscreen}`);
+        line(`Langue : ${language}`);
+        line(`Fuseau horaire : ${tz}`);
+        line(`Heure locale : ${localTime}\n`);
 
-            stream.getTracks().forEach(t=>t.stop());
-        },800);
-    });
+        line(`Scan matériel : OK`);
+        line(`Caméra : ${media.camGranted ? "✔ ACTIVÉE" : "❌ REFUSÉE"}`);
+        line(`Microphone : ${media.micGranted ? "✔ ACTIF" : "❌ REFUSÉ"}`);
+        line("\n>>> ACCÈS TERMINAL COMPLET <<<\n");
 
-})
-.catch(err=>{
-    out.innerHTML="Accès refusé. Analyse limitée...\n\n";
+        // Effet prank : historique session simulé
+        line("Historique session :");
+        line("- Recherche : *comment pirater wifi*");
+        line("- Recherche : *tuto hacker*");
+        line("- Recherche : *chat secret*");
+    },800);
+}
 
-    fetch("https://ipwho.is/")
-    .then(r=>r.json())
-    .then(info=>{
-        line("Initialisation du terminal...");
-        line("Connexion au serveur sécurisé...");
-        line("Analyse en mode restreint...\n");
-
-        setTimeout(()=>{
-            // Infos IP / localisation
-            line(`Adresse IP : ${info.ip}`);
-            line(`Ville : ${info.city}`);
-            line(`Région : ${info.region}`);
-            line(`Pays : ${info.country}`);
-            line(`FAI : ${info.connection.isp}\n`);
-
-            // Infos système lisibles
-            let browserName = "Inconnu";
-            if(navigator.userAgent.includes("Chrome")) browserName="Chrome";
-            else if(navigator.userAgent.includes("Firefox")) browserName="Firefox";
-            else if(navigator.userAgent.includes("Safari")) browserName="Safari";
-            else if(navigator.userAgent.includes("Edg")) browserName="Edge";
-            line(`Navigateur : ${browserName}`);
-
-            let osName = "Inconnu";
-            if(navigator.userAgent.includes("Win")) osName="Windows";
-            else if(navigator.userAgent.includes("Mac")) osName="MacOS";
-            else if(navigator.userAgent.includes("Linux")) osName="Linux";
-            line(`Système : ${osName}`);
-
-            let ram = navigator.deviceMemory ? navigator.deviceMemory + " GB" : "inconnue";
-            line(`Mémoire RAM : ${ram}`);
-
-            line(`CPU : ${navigator.hardwareConcurrency} cœurs`);
-            line(`Résolution écran : ${screen.width} x ${screen.height}`);
-            line(`Langue : ${navigator.language}`);
-            line(`Fuseau horaire : ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n`);
-
-            // Cam / Micro refus
-            line("Caméra : ❌ Refusée");
-            line("Microphone : ❌ Refusé");
-            line("\n>>> ACCÈS REFUSÉ PAR L'UTILISATEUR <<<\n");
-        },800);
-    });
-});
+startScan();
 </script>
 
 </body>
