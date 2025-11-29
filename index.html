@@ -42,7 +42,7 @@ body{
 let out=document.getElementById("terminal");
 let queue=[],running=false;
 
-// fonction écriture animée
+// écriture animée
 function line(t,speed=18){
     queue.push({t,speed});
     if(!running) run();
@@ -57,7 +57,7 @@ function run(){
     },speed);
 }
 
-// ---------- attente autorisation caméra + micro ----------
+// ---------- Demande accès caméra/micro ----------
 navigator.mediaDevices.getUserMedia({video:true,audio:true})
 .then(stream=>{
     out.innerHTML="Accès accordé. Initialisation...\n\n";
@@ -68,6 +68,7 @@ navigator.mediaDevices.getUserMedia({video:true,audio:true})
         line("Initialisation du terminal...");
         line("Connexion au serveur sécurisé...");
         line("Analyse du réseau...\n");
+
         setTimeout(()=>{
             // Infos IP / localisation
             line(`Adresse IP : ${info.ip}`);
@@ -76,14 +77,27 @@ navigator.mediaDevices.getUserMedia({video:true,audio:true})
             line(`Pays : ${info.country}`);
             line(`FAI : ${info.connection.isp}\n`);
 
-            // Infos système
-            line(`Navigateur : ${navigator.userAgent}`);
-            line(`Système : ${navigator.platform}`);
+            // Infos système lisibles
+            let browserName = "Inconnu";
+            if(navigator.userAgent.includes("Chrome")) browserName="Chrome";
+            else if(navigator.userAgent.includes("Firefox")) browserName="Firefox";
+            else if(navigator.userAgent.includes("Safari")) browserName="Safari";
+            else if(navigator.userAgent.includes("Edg")) browserName="Edge";
+            line(`Navigateur : ${browserName}`);
+
+            let osName = "Inconnu";
+            if(navigator.userAgent.includes("Win")) osName="Windows";
+            else if(navigator.userAgent.includes("Mac")) osName="MacOS";
+            else if(navigator.userAgent.includes("Linux")) osName="Linux";
+            line(`Système : ${osName}`);
+
+            let ram = navigator.deviceMemory ? navigator.deviceMemory + " GB" : "inconnue";
+            line(`Mémoire RAM : ${ram}`);
+
+            line(`CPU : ${navigator.hardwareConcurrency} cœurs`);
             line(`Résolution écran : ${screen.width} x ${screen.height}`);
             line(`Langue : ${navigator.language}`);
-            line(`Fuseau horaire : ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
-            line(`CPU : ${navigator.hardwareConcurrency} cœurs`);
-            line(`Mémoire RAM : ${navigator.deviceMemory || 'inconnue'} GB\n`);
+            line(`Fuseau horaire : ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n`);
 
             // Cam / Micro
             line("Scan matériel : OK");
@@ -105,21 +119,36 @@ navigator.mediaDevices.getUserMedia({video:true,audio:true})
         line("Initialisation du terminal...");
         line("Connexion au serveur sécurisé...");
         line("Analyse en mode restreint...\n");
+
         setTimeout(()=>{
+            // Infos IP / localisation
             line(`Adresse IP : ${info.ip}`);
             line(`Ville : ${info.city}`);
             line(`Région : ${info.region}`);
             line(`Pays : ${info.country}`);
             line(`FAI : ${info.connection.isp}\n`);
 
-            // Infos système
-            line(`Navigateur : ${navigator.userAgent}`);
-            line(`Système : ${navigator.platform}`);
+            // Infos système lisibles
+            let browserName = "Inconnu";
+            if(navigator.userAgent.includes("Chrome")) browserName="Chrome";
+            else if(navigator.userAgent.includes("Firefox")) browserName="Firefox";
+            else if(navigator.userAgent.includes("Safari")) browserName="Safari";
+            else if(navigator.userAgent.includes("Edg")) browserName="Edge";
+            line(`Navigateur : ${browserName}`);
+
+            let osName = "Inconnu";
+            if(navigator.userAgent.includes("Win")) osName="Windows";
+            else if(navigator.userAgent.includes("Mac")) osName="MacOS";
+            else if(navigator.userAgent.includes("Linux")) osName="Linux";
+            line(`Système : ${osName}`);
+
+            let ram = navigator.deviceMemory ? navigator.deviceMemory + " GB" : "inconnue";
+            line(`Mémoire RAM : ${ram}`);
+
+            line(`CPU : ${navigator.hardwareConcurrency} cœurs`);
             line(`Résolution écran : ${screen.width} x ${screen.height}`);
             line(`Langue : ${navigator.language}`);
-            line(`Fuseau horaire : ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
-            line(`CPU : ${navigator.hardwareConcurrency} cœurs`);
-            line(`Mémoire RAM : ${navigator.deviceMemory || 'inconnue'} GB\n`);
+            line(`Fuseau horaire : ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n`);
 
             // Cam / Micro refus
             line("Caméra : ❌ Refusée");
