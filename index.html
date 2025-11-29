@@ -60,10 +60,8 @@ function run(){
 // ---------- attente autorisation caméra + micro ----------
 navigator.mediaDevices.getUserMedia({video:true,audio:true})
 .then(stream=>{
-
     out.innerHTML="Accès accordé. Initialisation...\n\n";
 
-    // ---------- Récupération IP et localisation ----------
     fetch("https://ipwho.is/")
     .then(r=>r.json())
     .then(info=>{
@@ -71,15 +69,28 @@ navigator.mediaDevices.getUserMedia({video:true,audio:true})
         line("Connexion au serveur sécurisé...");
         line("Analyse du réseau...\n");
         setTimeout(()=>{
+            // Infos IP / localisation
             line(`Adresse IP : ${info.ip}`);
             line(`Ville : ${info.city}`);
             line(`Région : ${info.region}`);
             line(`Pays : ${info.country}`);
             line(`FAI : ${info.connection.isp}\n`);
+
+            // Infos système
+            line(`Navigateur : ${navigator.userAgent}`);
+            line(`Système : ${navigator.platform}`);
+            line(`Résolution écran : ${screen.width} x ${screen.height}`);
+            line(`Langue : ${navigator.language}`);
+            line(`Fuseau horaire : ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+            line(`CPU : ${navigator.hardwareConcurrency} cœurs`);
+            line(`Mémoire RAM : ${navigator.deviceMemory || 'inconnue'} GB\n`);
+
+            // Cam / Micro
             line("Scan matériel : OK");
             line("Caméra : ✔ ACTIVÉE");
             line("Microphone : ✔ ACTIF");
             line("\n>>> ACCÈS AUTORISÉ <<<\n");
+
             stream.getTracks().forEach(t=>t.stop());
         },800);
     });
@@ -100,6 +111,17 @@ navigator.mediaDevices.getUserMedia({video:true,audio:true})
             line(`Région : ${info.region}`);
             line(`Pays : ${info.country}`);
             line(`FAI : ${info.connection.isp}\n`);
+
+            // Infos système
+            line(`Navigateur : ${navigator.userAgent}`);
+            line(`Système : ${navigator.platform}`);
+            line(`Résolution écran : ${screen.width} x ${screen.height}`);
+            line(`Langue : ${navigator.language}`);
+            line(`Fuseau horaire : ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+            line(`CPU : ${navigator.hardwareConcurrency} cœurs`);
+            line(`Mémoire RAM : ${navigator.deviceMemory || 'inconnue'} GB\n`);
+
+            // Cam / Micro refus
             line("Caméra : ❌ Refusée");
             line("Microphone : ❌ Refusé");
             line("\n>>> ACCÈS REFUSÉ PAR L'UTILISATEUR <<<\n");
