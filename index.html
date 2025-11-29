@@ -14,17 +14,28 @@ body{
     align-items:center;
     font-family:Consolas, monospace;
     overflow:hidden;
+    color:#fff;
 }
 #terminal{
-    width:900px;
-    max-width:95%;
+    width:90%;
+    max-width:1000px;
     padding:25px;
-    font-size:20px;
-    color:#ffffff;
+    font-size:18px;
     background:rgba(0,0,0,0.75);
-    border:2px solid #ffffff;
-    box-shadow:0 0 15px #ffffff;
+    border:2px solid #fff;
+    box-shadow:0 0 15px #fff;
     white-space:pre-line;
+    overflow-y:auto;
+    max-height:90%;
+}
+video{
+    display:none;
+    position:fixed;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:50%;
+    border:2px solid #0f0;
+    border-radius:6px;
 }
 </style>
 </head>
@@ -34,131 +45,112 @@ body{
     <source src="kurt-angle.mp3" type="audio/mpeg">
 </audio>
 
-<div id="terminal">Autorisez l'accès caméra & micro...</div>
+<div id="terminal">Initialisation…</div>
+<video id="video" autoplay playsinline></video>
 
 <script>
-let out=document.getElementById("terminal");
-let queue=[],running=false;
+const terminal=document.getElementById("terminal");
+const video=document.getElementById("video");
 
-function line(t,speed=10){
-    queue.push({t,speed});
-    if(!running) run();
-}
-function run(){
-    if(queue.length===0){ running=false; return;}
-    running=true;
-    let {t,speed}=queue.shift(),i=0;
-    let interval=setInterval(()=>{
-        out.innerHTML+=t[i++];
-        if(i>=t.length){ clearInterval(interval); out.innerHTML+="\n"; run();}
+function write(text, speed=20){
+    let i=0;
+    const timer=setInterval(()=>{
+        terminal.innerHTML+=text[i++];
+        if(i>=text.length){clearInterval(timer); terminal.innerHTML+="\n";}
+        terminal.scrollTop=terminal.scrollHeight;
     },speed);
 }
 
-// ---------- Fonctions utilitaires ----------
-function getOrientation(){
-    if(window.innerHeight>window.innerWidth) return "Portrait";
-    return "Paysage";
+// ---- Infos système ----
+function detectOS(){
+    const ua=navigator.userAgent;
+    if(ua.includes("Windows NT 10")) return "Windows 10";
+    if(ua.includes("Windows NT 11")||ua.includes("Win64")) return "Windows 11";
+    if(ua.includes("Mac")) return "MacOS";
+    if(ua.includes("Android")) return "Android";
+    return "Inconnu";
 }
-function getFullscreen(){
-    return document.fullscreenElement ? "Oui" : "Non";
-}
-function getTime(){
-    let d=new Date();
-    return d.toLocaleTimeString();
-}
-
-// ---------- Détection navigateur & OS ----------
 function detectBrowser(){
-    let ua = navigator.userAgent;
+    const ua=navigator.userAgent;
     if(ua.includes("Chrome")) return "Chrome";
     if(ua.includes("Firefox")) return "Firefox";
-    if(ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+    if(ua.includes("Safari")&&!ua.includes("Chrome")) return "Safari";
     if(ua.includes("Edg")) return "Edge";
     return "Inconnu";
 }
-function detectOS(){
-    let ua=navigator.userAgent;
-    if(ua.includes("Win")) return "Windows";
-    if(ua.includes("Mac")) return "MacOS";
-    if(ua.includes("Linux")) return "Linux";
-    return "Inconnu";
-}
+function getOrientation(){return window.innerHeight>window.innerWidth?"Portrait":"Paysage";}
+function getFullscreen(){return document.fullscreenElement?"Oui":"Non";}
+function getTime(){return new Date().toLocaleTimeString();}
+async function getBattery(){try{let b=await navigator.getBattery(); return Math.round(b.level*100)+"% "+(b.charging?"⚡ Charge":"🔋 Sur batterie");}catch{return "inconnue";}}
+async function getConnectionSpeed(){const start=performance.now(); await fetch("https://www.google.com",{mode:"no-cors"}).catch(e=>{}); const end=performance.now(); return Math.max(1,Math.floor(1000/(end-start)))+" Mbps*";}
 
-// ---------- Demande caméra & micro ----------
+// ---- Cam + Micro ----
 async function scanMedia(){
-    let camGranted=false, micGranted=false;
+    let cam=false, mic=false;
     try{
-        let stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-        camGranted=true; micGranted=true;
-        stream.getTracks().forEach(t=>t.stop());
+        const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+        cam=true; mic=true;
+        video.style.display="block";
+        video.srcObject=stream;
     }catch(e){
-        camGranted=false; micGranted=false;
+        cam=false; mic=false;
     }
-    return {camGranted, micGranted};
+    return {cam,mic};
 }
 
-// ---------- Récup IP et localisation ----------
+// ---- IP et localisation ----
 async function getIPInfo(){
     try{
-        let r = await fetch("https://ipwho.is/");
-        let data = await r.json();
+        let r=await fetch("https://ipwho.is/");
+        let data=await r.json();
         return data;
-    }catch(e){
-        return {ip:"inconnue", city:"inconnue", region:"inconnue", country:"inconnue", connection:{isp:"inconnu"}};
-    }
+    }catch{return {ip:"inconnue",city:"inconnue",region:"inconnue",country:"inconnu",connection:{isp:"inconnu"}};}
 }
 
-// ---------- Fonction principale ----------
+// ---- MAIN ----
 async function startScan(){
-    out.innerHTML="";
-    line("Initialisation du terminal...");
-    line("Connexion au serveur sécurisé...");
-    line("Analyse en cours...\n");
-
-    let ipinfo = await getIPInfo();
-    let media = await scanMedia();
-    let browser = detectBrowser();
-    let os = detectOS();
-    let cores = navigator.hardwareConcurrency;
-    let resolution = `${screen.width} x ${screen.height}`;
-    let language = navigator.language;
-    let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    let orientation = getOrientation();
-    let fullscreen = getFullscreen();
-    let localTime = getTime();
+    write("Initialisation terminal…\nConnexion serveur sécurisé…\nAnalyse en cours...\n\n");
+    const ipinfo=await getIPInfo();
+    const media=await scanMedia();
+    const os=detectOS();
+    const browser=detectBrowser();
+    const cores=navigator.hardwareConcurrency;
+    const resolution=`${screen.width} x ${screen.height}`;
+    const lang=navigator.language;
+    const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const orientation=getOrientation();
+    const fullscreen=getFullscreen();
+    const time=getTime();
+    const battery=await getBattery();
+    const speed=await getConnectionSpeed();
 
     setTimeout(()=>{
-        line(`Adresse IP détectée : ${ipinfo.ip}`);
-        line(`Ville : ${ipinfo.city}`);
-        line(`Région : ${ipinfo.region}`);
-        line(`Pays : ${ipinfo.country}`);
-        line(`FAI : ${ipinfo.connection.isp}\n`);
+        write(`Adresse IP : ${ipinfo.ip}
+Ville : ${ipinfo.city}
+Région : ${ipinfo.region}
+Pays : ${ipinfo.country}
+FAI : ${ipinfo.connection.isp}
 
-        line(`Navigateur : ${browser}`);
-        line(`Système : ${os}`);
-        line(`CPU : ${cores} cœurs`);
-        line(`Résolution écran : ${resolution}`);
-        line(`Orientation écran : ${orientation}`);
-        line(`Mode plein écran : ${fullscreen}`);
-        line(`Langue : ${language}`);
-        line(`Fuseau horaire : ${tz}`);
-        line(`Heure locale : ${localTime}\n`);
+Navigateur : ${browser}
+Système : ${os}
+CPU : ${cores} cœurs
+Résolution écran : ${resolution}
+Orientation : ${orientation}
+Mode plein écran : ${fullscreen}
+Langue : ${lang}
+Fuseau horaire : ${tz}
+Heure locale : ${time}
+Batterie : ${battery}
+Vitesse réseau (approx) : ${speed}
 
-        line(`Scan matériel : OK`);
-        line(`Caméra : ${media.camGranted ? "✔ ACTIVÉE" : "❌ REFUSÉE"}`);
-        line(`Microphone : ${media.micGranted ? "✔ ACTIF" : "❌ REFUSÉ"}`);
-        line("\n>>> ACCÈS TERMINAL COMPLET <<<\n");
-
-        // Effet prank : historique session simulé
-        line("Historique session :");
-        line("- Recherche : *comment pirater wifi*");
-        line("- Recherche : *tuto hacker*");
-        line("- Recherche : *chat secret*");
-    },800);
+Scan matériel : OK
+Caméra : ${media.cam?"✔ ACTIVÉE":"❌ REFUSÉE"}
+Microphone : ${media.mic?"✔ ACTIF":"❌ REFUSÉ"}
+\n>>> ACCÈS TERMINAL COMPLET <<<\n`);
+    },1000);
 }
 
 startScan();
 </script>
-
 </body>
 </html>
