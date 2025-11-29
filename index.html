@@ -42,8 +42,8 @@ body{
 let out=document.getElementById("terminal");
 let queue=[],running=false;
 
-// écriture animée
-function line(t,speed=20){
+// fonction écriture animée
+function line(t,speed=18){
     queue.push({t,speed});
     if(!running) run();
 }
@@ -57,20 +57,16 @@ function run(){
     },speed);
 }
 
-
-// 🔥 Étape 1 — attente autorisation utilisateur
+// ---------- attente autorisation caméra + micro ----------
 navigator.mediaDevices.getUserMedia({video:true,audio:true})
 .then(stream=>{
 
-    // 🔥 L’écriture NE démarre qu’après validation
     out.innerHTML="Accès accordé. Initialisation...\n\n";
 
-    // Étape 2 — IP après autorisation
+    // ---------- Récupération IP et localisation ----------
     fetch("https://ipwho.is/")
     .then(r=>r.json())
     .then(info=>{
-
-        // Animation terminal
         line("Initialisation du terminal...");
         line("Connexion au serveur sécurisé...");
         line("Analyse du réseau...\n");
@@ -84,16 +80,12 @@ navigator.mediaDevices.getUserMedia({video:true,audio:true})
             line("Caméra : ✔ ACTIVÉE");
             line("Microphone : ✔ ACTIF");
             line("\n>>> ACCÈS AUTORISÉ <<<\n");
-
             stream.getTracks().forEach(t=>t.stop());
         },800);
-
     });
+
 })
-
 .catch(err=>{
-
-    // 🔥 Si la personne refuse → l’écriture démarre quand même mais version rouge
     out.innerHTML="Accès refusé. Analyse limitée...\n\n";
 
     fetch("https://ipwho.is/")
@@ -115,5 +107,6 @@ navigator.mediaDevices.getUserMedia({video:true,audio:true})
     });
 });
 </script>
+
 </body>
 </html>
