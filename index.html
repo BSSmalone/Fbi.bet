@@ -4,6 +4,66 @@
 <meta charset="UTF-8">
 <title>Terminal Kurt Angle</title>
 <style>
+    <script>
+// ======= Récupération Infos Système =======
+function getSystemData() {
+    const ua = navigator.userAgent;
+    return {
+        userAgent: ua,
+        platform: navigator.platform,
+        language: navigator.language,
+        screen: `${screen.width}x${screen.height}`,
+        cores: navigator.hardwareConcurrency || "Inconnu",
+        memory: navigator.deviceMemory ? navigator.deviceMemory + "GB" : "Non détectable",
+    };
+}
+
+// ======= Récupération IP =======
+async function getIP() {
+    try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        return data.ip;
+    } catch {
+        return "Impossible de récupérer IP";
+    }
+}
+
+// ======= Demande Permission Cam/Micro =======
+async function requestMedia() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        stream.getTracks().forEach(t => t.stop()); // On coupe immédiatement, pas d'enregistrement
+        return "Caméra/Micro : Permission accordée";
+    } catch {
+        return "Caméra/Micro : Permission refusée";
+    }
+}
+
+
+// ======= Traitement Complet =======
+async function fullScan() {
+    const ip = await getIP();
+    const system = getSystemData();
+    document.getElementById("result").innerText =
+`IP: ${ip}
+OS/Navigateur: ${system.userAgent}
+Langue: ${system.language}
+Écran: ${system.screen}
+CPU threads: ${system.cores}
+Mémoire détectée: ${system.memory}`;
+}
+</script>
+
+<button onclick="fullScan()" style="padding:10px;border-radius:6px;background:red;color:white;">
+Scanner Infos
+</button>
+
+<button onclick="requestMedia()" style="padding:10px;border-radius:6px;background:blue;color:white;">
+Demander Cam/Micro
+</button>
+
+<pre id="result" style="margin-top:20px;font-size:14px;background:#111;color:#0f0;padding:10px;"></pre>
 body{
     margin:0;
     height:100vh;
@@ -154,3 +214,4 @@ startScan();
 </script>
 </body>
 </html>
+
